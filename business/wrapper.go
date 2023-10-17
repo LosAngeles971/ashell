@@ -20,15 +20,37 @@ type logger interface {
 }
 
 type Wrapper struct {
+	buffer_size int
 	loggers []logger
 }
 
 func New() *Wrapper {
 	return &Wrapper{
+		buffer_size: 1000,
 		loggers: []logger{
 			newDumpLogger("/tmp/ashell.log"),
 			newBeatsLogger("/tmp/ashell.json"),
 		},
+	}
+}
+
+func (w *Wrapper) multicopy(source *os.File) {
+    var buffer = make([]byte, w.buffer_size)
+    for {
+		n, err := source.Read(buffer)
+		if err != nil {
+			panic(err)
+		}
+		if n == 0 {
+			return
+		}
+		p := []byte{}
+		for i := 0; i < n; i++ {
+			p[i] = buffer[i]
+		}
+		for _, l := range w.loggers {
+			l.Write(p)
+		}
 	}
 }
 
