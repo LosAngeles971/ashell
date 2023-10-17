@@ -1,0 +1,4 @@
+= Auditing command executed within a Linux shell
+
+The program _ashell_ opens a Linux shell and subsequently audit any executed command.
+

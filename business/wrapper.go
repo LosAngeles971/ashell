@@ -14,18 +14,25 @@ const (
 	shellCmd = "/bin/bash"
 )
 
+type logger interface {
+	Write(p []byte) (n int, err error)
+	Close() error
+}
+
 type Wrapper struct {
-	l *logger
+	loggers []logger
 }
 
 func New() *Wrapper {
 	return &Wrapper{
-		l: newLogger(withLogFile("/tmp/ashell.log"), withAuditFile("/tmp/ashell.json")),
+		loggers: []logger{
+			newDumpLogger("/tmp/ashell.log"),
+			newBeatsLogger("/tmp/ashell.json"),
+		},
 	}
 }
 
 func (w *Wrapper) Start() {
-	defer w.l.Close()
 	cmd := exec.Command(shellCmd)
 	tty, err := pty.Start(cmd)
 	if err != nil {
@@ -37,7 +44,10 @@ func (w *Wrapper) Start() {
 		panic(err)
 	}
 	defer term.Restore(0, previousState)
-	mw := io.MultiWriter(os.Stdout, w.l)
+	mw := io.MultiWriter(os.Stdout, w.loggers[0])
 	go io.Copy(tty, os.Stdin)
 	io.Copy(mw, tty)
+	for _, l := range w.loggers {
+		l.Close()
+	}
 }
