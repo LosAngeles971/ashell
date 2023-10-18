@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/LosAngeles971/ashell/business"
@@ -31,12 +30,10 @@ var rootCmd = &cobra.Command{
 		default:
 			log.SetLevel(log.InfoLevel)
 		}
-		if len(logfile) > 0 {
-			if f, err := os.OpenFile(logfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err == nil {
-				log.SetOutput(io.MultiWriter(os.Stdout, f))
-			} else {
-				panic(err)
-			}
+		if f, err := os.OpenFile(logfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err == nil {
+			log.SetOutput(f)
+		} else {
+			panic(err)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -57,7 +54,6 @@ func initConfig() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	// rootCmd.AddCommand(briscola.BriscolaCmd)
-	// rootCmd.PersistentFlags().StringVar(&loglevel, "log", "info", "log level = info|debug|trace")
-	// rootCmd.PersistentFlags().StringVar(&logfile, "logfile", "", "log file")
+	rootCmd.PersistentFlags().StringVar(&loglevel, "log", "info", "log level = info|debug|trace")
+	rootCmd.PersistentFlags().StringVar(&logfile, "logfile", "/var/log/ashell.log", "log file")
 }

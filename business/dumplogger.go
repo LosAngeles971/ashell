@@ -1,27 +1,21 @@
 package business
 
 import (
-	"bytes"
+	"fmt"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type dumpLogger struct {
-	logFilename      string
-	logFile          *os.File
-	buffer           *bytes.Buffer
+	logFilename string
 }
 
 type dumpLoggerOption func(*dumpLogger)
 
 func newDumpLogger(filename string, opts ...dumpLoggerOption) *dumpLogger {
-	var err error
 	l := &dumpLogger{
 		logFilename: filename,
-		buffer:         &bytes.Buffer{},
-	}
-	l.logFile, err = os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0775)
-	if err != nil {
-		panic(err)
 	}
 	for _, opt := range opts {
 		opt(l)
@@ -29,22 +23,18 @@ func newDumpLogger(filename string, opts ...dumpLoggerOption) *dumpLogger {
 	return l
 }
 
-
-func (l *dumpLogger) Write(p []byte) (n int, err error) {
-	n = len(p)
-	l.buffer.Write(p)
-	if bytes.Contains(p, []byte{'\n'}) {
-		for _, line := range bytes.Split(l.buffer.Bytes(), []byte{'\n'}) {
-			if len(line) == 0 {
-				continue
-			}
-			l.logFile.Write(line)
-		}
-		l.buffer.Reset()
+func (l *dumpLogger) Write(line []byte) (n int, err error) {
+	log.Tracef("receveid line of ( %d ) bytes for dumpLogger", len(line))
+	if f, err := os.OpenFile(l.logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0775); err != nil {
+		log.Errorf("error auditing commands to ( %s ) - %v", l.logFilename, err)
+	} else {
+		f.WriteString(fmt.Sprintf("%s\n", string(line)))
+		f.Close()
 	}
-	return n, nil
+	return len(line), nil
 }
 
 func (l *dumpLogger) Close() error {
-	return l.logFile.Close()
+	log.Tracef("closed dumpLogger")
+	return nil
 }

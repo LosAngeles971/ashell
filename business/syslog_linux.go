@@ -1,10 +1,8 @@
 package business
 
 import (
+	"bytes"
 	"log/syslog"
-	"os"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -13,15 +11,16 @@ const (
 )
 
 type syslogLogger struct {
-	sysLogTarget     string
-	sysLog           *syslog.Writer
+	sysLogTarget string
+	sysLog       *syslog.Writer
+	buffer       *bytes.Buffer
 }
 
 type osLoggerOption func(*syslogLogger)
 
 func newSyslogLogger(syslogTarget string, opts ...osLoggerOption) *syslogLogger {
 	var err error
-	l := &logger{
+	l := &syslogLogger{
 		sysLogTarget: syslogTarget,
 	}
 	l.sysLog, err = syslog.Dial(sysLogProtocol, syslogTarget, syslog.LOG_DEBUG, sysLogTag)
@@ -43,6 +42,9 @@ func (l *syslogLogger) Write(p []byte) (n int, err error) {
 				continue
 			}
 			_, err := l.sysLog.Write(line)
+			if err != nil {
+				panic(err)
+			}
 		}
 		l.buffer.Reset()
 	}

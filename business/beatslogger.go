@@ -18,9 +18,8 @@ type CommandEvent struct {
 }
 
 type beatsLogger struct {
-	logFilename      string
-	logFile          *os.File
-	buffer           *bytes.Buffer
+	logFilename string
+	buffer      *bytes.Buffer
 }
 
 type beatsLoggerOption func(*beatsLogger)
@@ -28,21 +27,17 @@ type beatsLoggerOption func(*beatsLogger)
 func newBeatsLogger(filename string, opts ...beatsLoggerOption) *beatsLogger {
 	l := &beatsLogger{
 		logFilename: filename,
-		buffer:         &bytes.Buffer{},
-	}
-	var err error
-	l.logFile, err = os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0775)
-	if err != nil {
-		panic(err)
+		buffer:      &bytes.Buffer{},
 	}
 	for _, opt := range opts {
 		opt(l)
 	}
+	log.Debugf("create beatsLogger to ( %s ", l.logFilename)
 	return l
 }
 
-// logEvent logs a command event to a file
-func (l *beatsLogger) logEvent(line []byte) {
+func (l *beatsLogger) Write(line []byte) (n int, err error) {
+	log.Tracef("receveid line of ( %d ) bytes for beatsLogger", len(line))
 	event := CommandEvent{
 		Timestamp: time.Now().Format(time.RFC3339),
 		Command:   "",
@@ -62,23 +57,10 @@ func (l *beatsLogger) logEvent(line []byte) {
 	if _, err := f.WriteString(string(j) + "\n"); err != nil {
 		log.Error(err)
 	}
-}
-
-func (l *beatsLogger) Write(p []byte) (n int, err error) {
-	n = len(p)
-	l.buffer.Write(p)
-	if bytes.Contains(p, []byte{'\n'}) {
-		for _, line := range bytes.Split(l.buffer.Bytes(), []byte{'\n'}) {
-			if len(line) == 0 {
-				continue
-			}
-			l.logEvent(line)
-		}
-		l.buffer.Reset()
-	}
-	return n, nil
+	return len(line), nil
 }
 
 func (l *beatsLogger) Close() error {
-	return l.logFile.Close()
+	log.Tracef("closed beatsLogger")
+	return nil
 }
