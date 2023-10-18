@@ -3,6 +3,7 @@ package business
 import (
 	"bytes"
 	"log/syslog"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,21 +35,12 @@ func newSyslogLogger(syslogTarget string, opts ...osLoggerOption) *syslogLogger 
 }
 
 func (l *syslogLogger) Write(p []byte) (n int, err error) {
-	n = len(p)
-	l.buffer.Write(p)
-	if bytes.Contains(p, []byte{'\n'}) {
-		for _, line := range bytes.Split(l.buffer.Bytes(), []byte{'\n'}) {
-			if len(line) == 0 {
-				continue
-			}
-			_, err := l.sysLog.Write(line)
-			if err != nil {
-				panic(err)
-			}
-		}
-		l.buffer.Reset()
+	log.Tracef("receveid line of ( %d ) bytes for dumpLogger", len(line))
+	if _, err := l.sysLog.Write(line); err != nil {
+		log.Errorf("error auditing commands to ( %s ) - %v", l.logFilename, err)
+		return len(line), err
 	}
-	return n, nil
+	return len(line), nil
 }
 
 func (l *syslogLogger) Close() error {

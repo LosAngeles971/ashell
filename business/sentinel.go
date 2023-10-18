@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
+	"syscall"
 
 	// creack (>= 1.1.10) solves the error "panic: fork/exec /bin/bash: Setctty set but Ctty not valid in child"
 	"github.com/creack/pty"
@@ -21,14 +23,14 @@ type logger interface {
 	Close() error
 }
 
-type Wrapper struct {
+type Sentinel struct {
 	buffer_size int
 	buffer      *bytes.Buffer
 	loggers     []logger
 }
 
-func New() *Wrapper {
-	return &Wrapper{
+func New() *Sentinel {
+	return &Sentinel{
 		buffer_size: 1000,
 		buffer:      &bytes.Buffer{},
 		loggers: []logger{
@@ -38,7 +40,7 @@ func New() *Wrapper {
 	}
 }
 
-func (w *Wrapper) Write(p []byte) (n int, err error) {
+func (w *Sentinel) Write(p []byte) (n int, err error) {
 	n = len(p)
 	log.Tracef("receveid ( %d ) bytes for multi-writer", n)
 	w.buffer.Write(p)
@@ -56,7 +58,9 @@ func (w *Wrapper) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (w *Wrapper) Start() {
+func (w *Sentinel) Start() {
+	signal.Notify(channel, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	go signalsListener()
 	cmd := exec.Command(shellCmd)
 	tty, err := pty.Start(cmd)
 	if err != nil {
@@ -76,4 +80,6 @@ func (w *Wrapper) Start() {
 		l.Close()
 	}
 	log.Debugf("closed loggers")
+	exitcode := <-exitchannel
+	os.Exit(exitcode)
 }
