@@ -1,3 +1,8 @@
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This package implements the Dump logger.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 package business
 
 import (
@@ -34,6 +39,7 @@ func (l *dumpLogger) Write(line []byte) (n int, err error) {
 	return len(line), nil
 }
 
+// Close: it is a useless function implemented only to be consistent with the Writer interface
 func (l *dumpLogger) Close() error {
 	log.Tracef("closed dumpLogger")
 	return nil

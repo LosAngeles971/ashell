@@ -1,4 +1,35 @@
-= Auditing command executed within a Linux shell
+= S(h)entinel
 
-The program _ashell_ opens a Linux shell and subsequently audit any executed command.
+S(h)entinel is a simple program, written in Golang, to wrap a Linux  _shell_, in order to provide functionalities to audit every commands executed by the user.
+
+The main use case is using S(h)entinel to audit commands execute by user from a root shell, generally due to security regulations. 
+
+Indeed, the user may starts s(h)entinel this way:
+
+[source,bash]
+----
+sudo s-h-entinel
+#
+----
+
+Once started S(h)entinel, the user got the shell (for example Bash) and it can normally execute commands.
+S(h)entinel reads all incoming from the stdin and stdout of the shell, then it processes the content as lines of text, in order to audit every line to different possible targets.
+
+[cols="2,4"]
+|===
+
+|Logger
+|Target
+
+|Dump
+|The logger appends every line to a local text file
+
+|JSON
+|The logger appends eveny line as an event rendered to a JSON file
+
+|Syslog
+|The logger sends every line to an external syslog daemon
+
+|===
+
 

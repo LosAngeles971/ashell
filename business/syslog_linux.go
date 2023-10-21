@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	sysLogTag      = "ashell"
+	sysLogTag      = "s-h-entinel"
 	sysLogProtocol = "udp"
 )
 

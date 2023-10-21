@@ -1,3 +1,8 @@
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+This package implements the shell's wrapper.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 package business
 
 import (
@@ -15,7 +20,9 @@ import (
 )
 
 const (
-	shellCmd = "/bin/bash"
+	bashShellCmd = "/bin/bash"
+	dumpLoggerDefaultFile = "/var/log/s-h-entinel.log"
+	jsonLoggerDefaultFile = "/var/log/s-h-entinel.json"
 )
 
 type logger interface {
@@ -24,22 +31,43 @@ type logger interface {
 }
 
 type Sentinel struct {
-	buffer_size int
 	buffer      *bytes.Buffer
 	loggers     []logger
+	shell       string
 }
 
-func New() *Sentinel {
-	return &Sentinel{
-		buffer_size: 1000,
-		buffer:      &bytes.Buffer{},
-		loggers: []logger{
-			newDumpLogger("/tmp/ashell.log"),
-			newBeatsLogger("/tmp/ashell.json"),
-		},
+type SentinelOption func(*Sentinel)
+
+func WithJsonLogger(enabled bool, filename string) SentinelOption {
+	return func(s *Sentinel) {
+		if enabled {
+			s.loggers = append(s.loggers, newJsonLogger(filename))
+		}
 	}
 }
 
+func WithDumpLogger(enabled bool, filename string) SentinelOption {
+	return func(s *Sentinel) {
+		if enabled {
+			s.loggers = append(s.loggers, newDumpLogger(filename))
+		}
+	}
+}
+
+func New(opts ...SentinelOption) *Sentinel {
+	s := &Sentinel{
+		buffer:      &bytes.Buffer{},
+		shell: bashShellCmd,
+		loggers: []logger{},
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// Write: this func splits the given array of bytes into line of text, 
+//        then it writes every line of text to every defined logger.
 func (w *Sentinel) Write(p []byte) (n int, err error) {
 	n = len(p)
 	log.Tracef("receveid ( %d ) bytes for multi-writer", n)
@@ -58,10 +86,14 @@ func (w *Sentinel) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
+// Start: it starts a shell, getting the stdin from that, 
+//        then it write every byte from the stdin to a multiwriter,
+//        the latter includes the os.Stdout (to make the shell functioning for the user) 
+//        and the Sentinel itself, for auditing purpose.
 func (w *Sentinel) Start() {
 	signal.Notify(channel, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 	go signalsListener()
-	cmd := exec.Command(shellCmd)
+	cmd := exec.Command(w.shell)
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)

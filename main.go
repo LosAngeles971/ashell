@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/LosAngeles971/ashell/command"
+	"github.com/LosAngeles971/s-h-entinel/command"
 )
 
 func main() {

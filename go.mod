@@ -1,4 +1,4 @@
-module github.com/LosAngeles971/ashell
+module github.com/LosAngeles971/s-h-entinel
 
 go 1.18
 
